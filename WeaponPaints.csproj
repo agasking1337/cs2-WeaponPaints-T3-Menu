@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -24,8 +24,8 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Reference Include="MenuManagerApi">
-      <HintPath>3rd_party\MenuManagerApi.dll</HintPath>
+    <Reference Include="T3MenuSharedAPI">
+      <HintPath>3rd_party\T3MenuSharedAPI.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>

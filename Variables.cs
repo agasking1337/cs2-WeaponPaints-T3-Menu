@@ -4,7 +4,7 @@ using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Capabilities;
 using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
 using CounterStrikeSharp.API.Modules.Utils;
-using MenuManager;
+using T3MenuSharedApi;
 using Microsoft.Extensions.Localization;
 using Newtonsoft.Json.Linq;
 
@@ -164,8 +164,8 @@ public partial class WeaponPaints
 
 	private readonly ConcurrentDictionary<int, ConcurrentDictionary<int, float>> _temporaryPlayerWeaponWear = new();
 	
-	internal static IMenuApi? MenuApi;
-	private static readonly PluginCapability<IMenuApi> MenuCapability = new("menu:nfcore");
+	internal static IT3MenuManager? T3MenuManager;
+	private static readonly PluginCapability<IT3MenuManager> T3MenuCapability = new("t3menu:manager");
 	
 	private int _fadeSeed;
 

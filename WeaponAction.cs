@@ -1,4 +1,7 @@
-﻿using CounterStrikeSharp.API;
+using CounterStrikeSharp.API;
+using System;
+using System.Globalization; // Add this line
+
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Entities.Constants;
 using CounterStrikeSharp.API.Modules.Memory;
@@ -15,7 +18,6 @@ namespace WeaponPaints
 		private void GivePlayerWeaponSkin(CCSPlayerController player, CBasePlayerWeapon weapon)
 		{
 			if (!Config.Additional.SkinEnabled) return;
-			if (!GPlayerWeaponsInfo.TryGetValue(player.Slot, out _)) return;
 			
 			bool isKnife = weapon.DesignerName.Contains("knife") || weapon.DesignerName.Contains("bayonet");
 			
@@ -465,28 +467,40 @@ namespace WeaponPaints
 		}
 
 		private static void GivePlayerAgent(CCSPlayerController player)
-		{
-			if (!GPlayersAgent.TryGetValue(player.Slot, out var value)) return;
+        {
+            if (!GPlayersAgent.TryGetValue(player.Slot, out var value)) return;
 
-			var model = player.TeamNum == 3 ? value.CT : value.T;
-			if (string.IsNullOrEmpty(model)) return;
+            var model = player.TeamNum == 3 ? value.CT : value.T;
+            if (string.IsNullOrEmpty(model)) return;
 
-			if (player.PlayerPawn.Value == null)
-				return;
+            if (player.PlayerPawn.Value == null)
+                return;
 
-			try
-			{
-				Server.NextFrame(() =>
-				{
-					player.PlayerPawn.Value.SetModel(
-						$"characters/models/{model}.vmdl"
-					);
-				});
-			}
-			catch (Exception)
-			{
-			}
-		}
+            try
+            {
+                Server.NextFrame(() =>
+                {
+                    string finalModelPath;
+                    if (model.EndsWith(".vmdl", StringComparison.OrdinalIgnoreCase))
+                    {
+                        finalModelPath = model.StartsWith("characters/models/", StringComparison.OrdinalIgnoreCase)
+                            ? model
+                            : $"characters/models/{model}";
+                    }
+                    else
+                    {
+                        finalModelPath = model.StartsWith("characters/models/", StringComparison.OrdinalIgnoreCase)
+                            ? $"{model}.vmdl"
+                            : $"characters/models/{model}.vmdl";
+                    }
+
+                    player.PlayerPawn.Value.SetModel(finalModelPath);
+                });
+            }
+            catch (Exception)
+            {
+            }
+        }
 
 		private static void GivePlayerMusicKit(CCSPlayerController player)
 		{

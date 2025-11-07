@@ -119,7 +119,7 @@ public partial class WeaponPaints : BasePlugin, IPluginConfig<WeaponPaintsConfig
 	{
 		try
 		{
-			MenuApi = MenuCapability.Get();
+			T3MenuManager = T3MenuCapability.Get();
 			
 			if (Config.Additional.KnifeEnabled)
 				SetupKnifeMenu();
@@ -137,10 +137,14 @@ public partial class WeaponPaints : BasePlugin, IPluginConfig<WeaponPaintsConfig
 			RegisterCommands();
 		}
 		catch (Exception)
-		{
-			MenuApi = null;
-			Logger.LogError("Error while loading required plugins");
-			throw;
-		}
-	}
+		        {
+            T3MenuManager = null;
+            Logger.LogError("Error while loading required plugins");
+            throw;
+        }
+    }
+
+    private void RegisterCommands()
+    {
+    }
 }
