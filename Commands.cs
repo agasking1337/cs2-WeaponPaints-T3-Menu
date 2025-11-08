@@ -51,9 +51,7 @@ public partial class WeaponPaints
                 {
                     if (!Utility.IsPlayerValid(p) || p is null) return;
 
-                    var teamsToCheck = p.TeamNum < 2
-                        ? new[] { CsTeam.Terrorist, CsTeam.CounterTerrorist }
-                        : new[] { p.Team };
+                    var teamsToCheck = new[] { CsTeam.Terrorist, CsTeam.CounterTerrorist };
 
                     var playerKnives = GPlayersKnife.GetOrAdd(p.Slot, new ConcurrentDictionary<CsTeam, string>());
                     var playerWeapons = GPlayerWeaponsInfo.GetOrAdd(p.Slot,
@@ -191,9 +189,7 @@ public partial class WeaponPaints
                 {
                     if (!Utility.IsPlayerValid(p) || p is null) return;
 
-                    var teamsToCheck = p.TeamNum < 2
-                        ? new[] { CsTeam.Terrorist, CsTeam.CounterTerrorist }
-                        : new[] { p.Team };
+                    var teamsToCheck = new[] { CsTeam.Terrorist, CsTeam.CounterTerrorist };
 
                     var playerWeapons = GPlayerWeaponsInfo.GetOrAdd(p.Slot,
                         _ => new ConcurrentDictionary<CsTeam, ConcurrentDictionary<int, WeaponInfo>>());
@@ -299,9 +295,7 @@ public partial class WeaponPaints
             var paintId = gloveObj["paint"]?.ToObject<int>() ?? 0;
             if (gloveDefIndex == 0 || paintId == 0) return;
 
-            var teamsToCheck = player.TeamNum < 2
-                ? new[] { CsTeam.Terrorist, CsTeam.CounterTerrorist }
-                : new[] { player.Team };
+            var teamsToCheck = new[] { CsTeam.Terrorist, CsTeam.CounterTerrorist };
 
             var playerGloves = GPlayersGlove.GetOrAdd(player.Slot, _ => new ConcurrentDictionary<CsTeam, ushort>());
             var playerWeapons = GPlayerWeaponsInfo.GetOrAdd(player.Slot,
