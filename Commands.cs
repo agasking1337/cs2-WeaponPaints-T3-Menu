@@ -27,65 +27,103 @@ public partial class WeaponPaints
         {
             if (!Utility.IsPlayerValid(player)) return;
 
-            var playerKnives = GPlayersKnife.GetOrAdd(player.Slot, new ConcurrentDictionary<CsTeam, string>());
-            var teamsToCheck = player.TeamNum < 2 
-                ? new[] { CsTeam.Terrorist, CsTeam.CounterTerrorist } 
-                : [player.Team];
-            
             var knifeName = option.OptionDisplay ?? string.Empty;
-
             var knifeKey = knivesOnly.FirstOrDefault(x => x.Value == knifeName).Key;
             if (string.IsNullOrEmpty(knifeKey)) return;
-            if (!string.IsNullOrEmpty(Localizer["wp_knife_menu_select"]))
-            {
-                player.Print(Localizer["wp_knife_menu_select", knifeName]);
-            }
 
-            foreach (var team in teamsToCheck)
-            {
-                playerKnives[team] = knifeKey;
-            }
+            var defIndex = WeaponDefindex.FirstOrDefault(x => x.Value == knifeKey).Key;
+            if (defIndex == 0) return;
 
-            // Apply immediately to current knife if possible
-            var activeWeapon = player.PlayerPawn.Value?.WeaponServices?.ActiveWeapon.Value;
-            if (activeWeapon != null && (activeWeapon.DesignerName.Contains("knife") || activeWeapon.DesignerName.Contains("bayonet")))
-            {
-                GivePlayerWeaponSkin(player, activeWeapon);
-            }
+            var paintsMenu = Utility.CreateMenu($"{knifeName} Skins", isSubMenu: true);
+            if (paintsMenu == null) return;
 
-            // Also apply to any knife in inventory (if not currently active)
-            var myWeapons = player.PlayerPawn.Value?.WeaponServices?.MyWeapons;
-            if (myWeapons != null)
+            var skinsForKnife = SkinsList
+                .Where(w => w["weapon_defindex"]?.ToObject<int>() == defIndex)
+                .ToList();
+
+            foreach (var skin in skinsForKnife)
             {
-                foreach (var handle in myWeapons)
+                var paintId = skin["paint"]?.ToObject<int>() ?? 0;
+                var paintName = skin["paint_name"]?.ToString() ?? skin["name"]?.ToString() ?? paintId.ToString();
+                if (paintId <= 0 || string.IsNullOrEmpty(paintName)) continue;
+
+                paintsMenu.AddOption(paintName, (p, opt) =>
                 {
-                    var w = handle.Value;
-                    if (w == null || !w.IsValid) continue;
-                    if (w.DesignerName.Contains("knife") || w.DesignerName.Contains("bayonet"))
+                    if (!Utility.IsPlayerValid(p) || p is null) return;
+
+                    var teamsToCheck = p.TeamNum < 2
+                        ? new[] { CsTeam.Terrorist, CsTeam.CounterTerrorist }
+                        : new[] { p.Team };
+
+                    var playerKnives = GPlayersKnife.GetOrAdd(p.Slot, new ConcurrentDictionary<CsTeam, string>());
+                    var playerWeapons = GPlayerWeaponsInfo.GetOrAdd(p.Slot,
+                        _ => new ConcurrentDictionary<CsTeam, ConcurrentDictionary<int, WeaponInfo>>());
+
+                    foreach (var team in teamsToCheck)
                     {
-                        GivePlayerWeaponSkin(player, w);
+                        playerKnives[team] = knifeKey;
+                        var teamWeapons = playerWeapons.GetOrAdd(team, _ => new ConcurrentDictionary<int, WeaponInfo>());
+                        teamWeapons[defIndex] = new WeaponInfo
+                        {
+                            Paint = paintId,
+                            Seed = 0,
+                            Wear = 0.01f,
+                            Nametag = string.Empty,
+                            StatTrak = false,
+                            StatTrakCount = 0,
+                            KeyChain = null,
+                            Stickers = new List<StickerInfo>()
+                        };
                     }
-                }
+
+                    // Refresh and apply to active and inventory knives
+                    RefreshWeapons(p);
+                    var activeWeapon = p.PlayerPawn.Value?.WeaponServices?.ActiveWeapon.Value;
+                    if (activeWeapon != null && (activeWeapon.DesignerName.Contains("knife") || activeWeapon.DesignerName.Contains("bayonet")))
+                    {
+                        GivePlayerWeaponSkin(p, activeWeapon);
+                    }
+                    var myWeapons = p.PlayerPawn.Value?.WeaponServices?.MyWeapons;
+                    if (myWeapons != null)
+                    {
+                        foreach (var handle in myWeapons)
+                        {
+                            var w = handle.Value;
+                            if (w == null || !w.IsValid) continue;
+                            if (w.DesignerName.Contains("knife") || w.DesignerName.Contains("bayonet"))
+                            {
+                                GivePlayerWeaponSkin(p, w);
+                            }
+                        }
+                    }
+
+                    p.Print($"Applied knife: {knifeName} with skin: {paintName}");
+                    paintsMenu.Close(p);
+
+                    // Persist knife type and paints
+                    if (WeaponSync != null && p.UserId != null)
+                    {
+                        var info = new PlayerInfo
+                        {
+                            UserId = p.UserId,
+                            Slot = p.Slot,
+                            Index = (int)p.Index,
+                            SteamId = p.SteamID.ToString(),
+                            Name = p.PlayerName,
+                            IpAddress = p.IpAddress?.Split(":")[0]
+                        };
+                        var teams = teamsToCheck;
+                        _ = System.Threading.Tasks.Task.Run(async () =>
+                        {
+                            await WeaponSync.SyncKnifeToDatabase(info, knifeKey, teams);
+                            await WeaponSync.SyncWeaponPaintsToDatabase(info);
+                        });
+                    }
+                });
             }
 
-            // Ensure full inventory refresh to propagate subclass change
-            RefreshWeapons(player);
-
-            // Persist knife selection to DB
-            if (WeaponSync != null && player.UserId != null)
-            {
-                var info = new PlayerInfo
-                {
-                    UserId = player.UserId,
-                    Slot = player.Slot,
-                    Index = (int)player.Index,
-                    SteamId = player.SteamID.ToString(),
-                    Name = player.PlayerName,
-                    IpAddress = player.IpAddress?.Split(":")[0]
-                };
-                var teams = teamsToCheck;
-                _ = System.Threading.Tasks.Task.Run(async () => await WeaponSync.SyncKnifeToDatabase(info, knifeKey, teams));
-            }
+            paintsMenu.ParentMenu = giveItemMenu;
+            WeaponPaints.T3MenuManager?.OpenSubMenu(player, paintsMenu);
         };
         foreach (var knifePair in knivesOnly)
         {
@@ -208,7 +246,7 @@ public partial class WeaponPaints
 
         // ...
         foreach (var weaponName in WeaponList
-                     .Where(kvp => kvp.Key != "weapon_knife")
+                     .Where(kvp => !(kvp.Key.StartsWith("weapon_knife") || kvp.Key.StartsWith("weapon_bayonet")))
                      .Select(kvp => kvp.Value))
         {
             weaponSelectionMenu?.AddOption(weaponName, handleWeaponSelection);
@@ -307,10 +345,31 @@ public partial class WeaponPaints
             }
         };
 
-        // Add weapon options to the weapon selection menu
-        foreach (var paintName in GlovesList.Select(gloveObject => gloveObject["paint_name"]?.ToString() ?? "").Where(paintName => paintName.Length > 0))
+        // Add glove categories to the menu
+        var categories = GlovesList
+            .Select(gloveObject => gloveObject["paint_name"]?.ToString() ?? "")
+            .Where(p => p.Length > 0)
+            .Select(p => p.Split('|')[0].Trim())
+            .Distinct();
+
+        foreach (var category in categories)
         {
-            glovesSelectionMenu.AddOption(paintName, handleGloveSelection);
+            var categoryMenu = Utility.CreateMenu(category, isSubMenu: true);
+            if (categoryMenu == null) continue;
+
+            foreach (var gloveObject in GlovesList.Where(g => (g["paint_name"]?.ToString() ?? "").StartsWith(category)))
+            {
+                var paintName = gloveObject["paint_name"]?.ToString() ?? "";
+                if (paintName.Length > 0)
+                    categoryMenu.AddOption(paintName, handleGloveSelection);
+            }
+
+            categoryMenu.ParentMenu = glovesSelectionMenu;
+            glovesSelectionMenu.AddOption(category, (player, opt) =>
+            {
+                if (!Utility.IsPlayerValid(player) || player is null) return;
+                WeaponPaints.T3MenuManager?.OpenSubMenu(player, categoryMenu);
+            });
         }
 
         // Command to open the weapon selection menu for players
