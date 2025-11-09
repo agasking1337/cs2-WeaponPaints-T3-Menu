@@ -18,12 +18,12 @@ public partial class WeaponPaints
         if (!Config.Additional.KnifeEnabled || !_gBCommandsAllowed) return;
 
         var knivesOnly = WeaponList
-            .Where(pair => pair.Key.StartsWith("weapon_knife") || pair.Key.StartsWith("weapon_bayonet"))
+            .Where(pair => (pair.Key.StartsWith("weapon_knife") || pair.Key.StartsWith("weapon_bayonet")) && pair.Key != "weapon_knife")
             .ToDictionary(pair => pair.Key, pair => pair.Value);
 
         var giveItemMenu = Utility.CreateMenu(Localizer["wp_knife_menu_title"]);
         
-        var handleGive = (CCSPlayerController player, IT3Option option) =>
+        var handleGive = (CCSPlayerController? player, IT3Option option) =>
         {
             if (!Utility.IsPlayerValid(player)) return;
 
@@ -40,6 +40,12 @@ public partial class WeaponPaints
             var skinsForKnife = SkinsList
                 .Where(w => w["weapon_defindex"]?.ToObject<int>() == defIndex)
                 .ToList();
+
+            if (skinsForKnife.Count == 0)
+            {
+                player.Print($"No skins available for {knifeName}");
+                return;
+            }
 
             foreach (var skin in skinsForKnife)
             {
@@ -96,7 +102,7 @@ public partial class WeaponPaints
                     }
 
                     p.Print($"Applied knife: {knifeName} with skin: {paintName}");
-                    paintsMenu.Close(p);
+                    WeaponPaints.T3MenuManager?.CloseMenu(p);
 
                     // Persist knife type and paints
                     if (WeaponSync != null && p.UserId != null)
@@ -217,7 +223,7 @@ public partial class WeaponPaints
                         GivePlayerWeaponSkin(p, activeWeapon);
                     }
                     p.Print($"Applied skin: {paintName} to {selectedWeapon}");
-                    paintsMenu.Close(p);
+                    WeaponPaints.T3MenuManager?.CloseMenu(p);
 
                     // Persist weapon paints to DB
                     if (WeaponSync != null && p.UserId != null)
