@@ -342,6 +342,8 @@ public partial class WeaponPaints
                 };
                 var teams = teamsToCheck;
                 _ = System.Threading.Tasks.Task.Run(async () => await WeaponSync.SyncGloveToDatabase(info, (ushort)gloveDefIndex, teams));
+                // Also persist paint/wear/seed into skins table so gloves reload after reconnect/restart
+                _ = System.Threading.Tasks.Task.Run(async () => await WeaponSync.SyncWeaponPaintsToDatabase(info));
             }
         };
 

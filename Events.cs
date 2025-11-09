@@ -1,4 +1,4 @@
-﻿using CounterStrikeSharp.API;
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Entities;
@@ -87,10 +87,10 @@ namespace WeaponPaints
 				if (WeaponSync != null)
 					await WeaponSync.SyncStatTrakToDatabase(playerInfo);
 
-				if (Config.Additional.SkinEnabled)
-				{
-					GPlayerWeaponsInfo.TryRemove(player.Slot, out _);
-				}
+				if (Config.Additional.SkinEnabled || Config.Additional.GloveEnabled)
+                {
+                    GPlayerWeaponsInfo.TryRemove(player.Slot, out _);
+                }
 			});
 
 			if (Config.Additional.KnifeEnabled)

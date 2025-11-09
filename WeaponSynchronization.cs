@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using MySqlConnector;
 using System.Collections.Concurrent;
 using CounterStrikeSharp.API.Modules.Utils;
@@ -31,8 +31,10 @@ internal class WeaponSynchronization
 				GetAgentFromDatabase(player, connection);
 			if (_config.Additional.MusicEnabled)
 				GetMusicFromDatabase(player, connection);
-			if (_config.Additional.SkinEnabled)
+			// Load weapon paints if skins are enabled OR gloves depend on weapon paint info
+			if (_config.Additional.SkinEnabled || _config.Additional.GloveEnabled)
 				GetWeaponPaintsFromDatabase(player, connection);
+
 			if (_config.Additional.PinsEnabled)
 				GetPinsFromDatabase(player, connection);
 		}
@@ -164,7 +166,7 @@ internal class WeaponSynchronization
 	{
 		try
 		{
-			if (!_config.Additional.SkinEnabled || player == null || string.IsNullOrEmpty(player.SteamId))
+			if (!(_config.Additional.SkinEnabled || _config.Additional.GloveEnabled) || player == null || string.IsNullOrEmpty(player.SteamId))
 				return;
 				
 			var playerWeapons = WeaponPaints.GPlayerWeaponsInfo.GetOrAdd(player.Slot,
