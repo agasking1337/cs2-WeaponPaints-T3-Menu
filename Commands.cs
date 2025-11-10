@@ -43,7 +43,7 @@ public partial class WeaponPaints
 
             if (skinsForKnife.Count == 0)
             {
-                player.Print($"No skins available for {knifeName}");
+                player?.Print($"No skins available for {knifeName}");
                 return;
             }
 

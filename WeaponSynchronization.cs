@@ -448,17 +448,25 @@ internal class WeaponSynchronization
 		if (!_config.Additional.AgentEnabled || string.IsNullOrEmpty(player.SteamId)) return;
 
 		const string query = """
-		                     					INSERT INTO `wp_player_agents` (`steamid`, `agent_ct`, `agent_t`)
-		                     					VALUES(@steamid, @agent_ct, @agent_t)
-		                     					ON DUPLICATE KEY UPDATE
-		                     						`agent_ct` = @agent_ct,
-		                     						`agent_t` = @agent_t
-		                     """;
+			                      				INSERT INTO `wp_player_agents` (`steamid`, `agent_ct`, `agent_t`)
+			                      				VALUES(@steamid, @agent_ct, @agent_t)
+			                      				ON DUPLICATE KEY UPDATE
+			                      					`agent_ct` = @agent_ct,
+			                      					`agent_t` = @agent_t
+			                     """;
 		try
 		{
 			await using var connection = await _database.GetConnectionAsync();
 
-			await connection.ExecuteAsync(query, new { steamid = player.SteamId, agent_ct = WeaponPaints.GPlayersAgent[player.Slot].CT, agent_t = WeaponPaints.GPlayersAgent[player.Slot].T });
+			string? agentCT = null;
+			string? agentT = null;
+			if (WeaponPaints.GPlayersAgent.TryGetValue(player.Slot, out var agentPair))
+			{
+				agentCT = agentPair.CT;
+				agentT = agentPair.T;
+			}
+
+			await connection.ExecuteAsync(query, new { steamid = player.SteamId, agent_ct = agentCT, agent_t = agentT });
 		}
 		catch (Exception e)
 		{

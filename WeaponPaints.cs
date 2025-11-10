@@ -5,6 +5,7 @@ using CounterStrikeSharp.API.Core.Attributes;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Entities.Constants;
+using CounterStrikeSharp.API.Modules.Utils;
 using Microsoft.Extensions.Logging;
 using MySqlConnector;
 
@@ -146,5 +147,73 @@ public partial class WeaponPaints : BasePlugin, IPluginConfig<WeaponPaintsConfig
 
     private void RegisterCommands()
     {
+        _config.Additional.CommandRefresh.ForEach(c =>
+        {
+            AddCommand($"css_{c}", "Refresh loadout from database and apply in-game", (player, _) =>
+            {
+                if (!Config.Additional.CommandWpEnabled) return;
+                if (player == null || !player.IsValid) return;
+
+                try
+                {
+                    var playerInfo = new PlayerInfo
+                    {
+                        UserId = player.UserId,
+                        Slot = player.Slot,
+                        Index = (int)player.Index,
+                        SteamId = player.SteamID.ToString(),
+                        Name = player.PlayerName,
+                        IpAddress = player.IpAddress?.Split(":")[0]
+                    };
+
+                    if (WeaponSync == null)
+                    {
+                        player.PrintToChat($"[{ModuleName}] Database not initialized.");
+                        return;
+                    }
+
+                    // Notify user on main thread
+                    player.PrintToChat($"[{ModuleName}] Refreshing loadout from database...");
+
+                    // Pre-capture values to avoid accessing natives off-main thread
+                    var infoCopy = playerInfo;
+                    var playerRef = player;
+
+                    // Load from DB then apply on main thread
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            // Load latest selections from DB into memory
+                            await WeaponSync.GetPlayerData(infoCopy);
+
+                            // Apply on main thread
+                            Server.NextFrame(() =>
+                            {
+                                if (!Utility.IsPlayerValid(playerRef)) return;
+
+                                if (Config.Additional.AgentEnabled)
+                                    GivePlayerAgent(playerRef);
+                                if (Config.Additional.GloveEnabled)
+                                    GivePlayerGloves(playerRef);
+                                if (Config.Additional.SkinEnabled)
+                                    RefreshWeapons(playerRef);
+
+                                playerRef.PrintToChat($"[{ModuleName}] Loadout applied from database.");
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogError($"Error syncing weapon paints: {ex.Message}");
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError($"Error in refresh command: {ex.Message}");
+                    player.PrintToChat($"[{ModuleName}] Error checking sync status. Check console.");
+                }
+            });
+        });
     }
 }
