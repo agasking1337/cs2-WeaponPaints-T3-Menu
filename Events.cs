@@ -114,6 +114,8 @@ namespace WeaponPaints
 				GPlayersPin.TryRemove(player.Slot, out _);
 			}
 			
+			_playerWeaponImage.Remove(player.Slot);
+			_playerWeaponImageExpiry.Remove(player.Slot);
 			_temporaryPlayerWeaponWear.TryRemove(player.Slot, out _);
 			CommandsCooldown.Remove(player.Slot);
 			Players.Remove(player);
@@ -268,7 +270,7 @@ namespace WeaponPaints
 		private void OnTick()
 		{
 			if (!Config.Additional.ShowSkinImage) return;
-
+		
 			foreach (var player in Players)
 			{
 				if (_playerWeaponImage.TryGetValue(player.Slot, out var value) && !string.IsNullOrEmpty(value))

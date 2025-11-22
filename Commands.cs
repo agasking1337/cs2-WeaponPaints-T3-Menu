@@ -97,8 +97,14 @@ public partial class WeaponPaints
                         }
                     }
 
+                    if (Config.Additional.ShowSkinImage)
+                    {
+                        var imageUrl = skin["image"]?.ToString() ?? string.Empty;
+                        _playerWeaponImage[p.Slot] = imageUrl;
+                        AddTimer(2.0f, () => _playerWeaponImage.Remove(p.Slot), TimerFlags.STOP_ON_MAPCHANGE);
+                    }
+
                     p.Print($"Applied knife: {knifeName} with skin: {paintName}");
-                    paintsMenu.Close(p);
 
                     // Persist knife type and paints
                     if (WeaponSync != null && p.UserId != null)
@@ -220,8 +226,15 @@ public partial class WeaponPaints
                     {
                         GivePlayerWeaponSkin(p, activeWeapon);
                     }
+                    
+                    if (Config.Additional.ShowSkinImage)
+                    {
+                        var imageUrl = skin["image"]?.ToString() ?? string.Empty;
+                        _playerWeaponImage[p.Slot] = imageUrl;
+                        AddTimer(2.0f, () => _playerWeaponImage.Remove(p.Slot), TimerFlags.STOP_ON_MAPCHANGE);
+                    }
+
                     p.Print($"Applied skin: {paintName} to {selectedWeapon}");
-                    paintsMenu.Close(p);
 
                     // Persist weapon paints to DB
                     if (WeaponSync != null && p.UserId != null)

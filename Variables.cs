@@ -87,6 +87,7 @@ public partial class WeaponPaints
 	internal static WeaponSynchronization? WeaponSync;
 	private static bool _gBCommandsAllowed = true;
 	private readonly Dictionary<int, string> _playerWeaponImage = new();
+	private readonly Dictionary<int, DateTime> _playerWeaponImageExpiry = new();
 
 	private static readonly Dictionary<int, DateTime> CommandsCooldown = new();
 	internal static Database? Database;
