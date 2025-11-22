@@ -104,6 +104,7 @@ namespace WeaponPaints
 			if (Config.Additional.AgentEnabled)
 			{
 				GPlayersAgent.TryRemove(player.Slot, out _);
+				GPlayersOriginalAgent.TryRemove(player.Slot, out _);
 			}
 			if (Config.Additional.MusicEnabled)
 			{

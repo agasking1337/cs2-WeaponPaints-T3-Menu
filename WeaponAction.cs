@@ -454,11 +454,11 @@ namespace WeaponPaints
 
 		private void UpdateWeaponMeshGroupMask(CBaseEntity weapon, bool isLegacy = false)
 		{
-				if (weapon.CBodyComponent?.SceneNode == null) return;
-				//var skeleton = weapon.CBodyComponent.SceneNode.GetSkeletonInstance();
-				// skeleton.ModelState.MeshGroupMask = isLegacy ? 2UL : 1UL;
+			if (weapon.CBodyComponent?.SceneNode == null) return;
+			//var skeleton = weapon.CBodyComponent.SceneNode.GetSkeletonInstance();
+			// skeleton.ModelState.MeshGroupMask = isLegacy ? 2UL : 1UL;
 
-				weapon.AcceptInput("SetBodygroup", value: $"body,{(isLegacy ? 1 : 0)}");
+			weapon.AcceptInput("SetBodygroup", value: $"body,{(isLegacy ? 1 : 0)}");
 		}
 
 		private void UpdatePlayerWeaponMeshGroupMask(CCSPlayerController player, CBasePlayerWeapon weapon, bool isLegacy)
@@ -467,47 +467,35 @@ namespace WeaponPaints
 		}
 
 		private static void GivePlayerAgent(CCSPlayerController player)
-        {
-            if (!GPlayersAgent.TryGetValue(player.Slot, out var value)) return;
+		{
+			if (!GPlayersAgent.TryGetValue(player.Slot, out var value)) return;
 
-            var model = player.TeamNum == 3 ? value.CT : value.T;
-            if (string.IsNullOrEmpty(model)) return;
+			var model = player.TeamNum == 3 ? value.CT : value.T;
+			if (string.IsNullOrEmpty(model)) return;
 
-            if (player.PlayerPawn.Value == null)
-                return;
+			if (player.PlayerPawn.Value == null)
+				return;
 
-            try
-            {
-                Server.NextFrame(() =>
-                {
-                    string finalModelPath;
-                    if (model.EndsWith(".vmdl", StringComparison.OrdinalIgnoreCase))
-                    {
-                        finalModelPath = model.StartsWith("characters/models/", StringComparison.OrdinalIgnoreCase)
-                            ? model
-                            : $"characters/models/{model}";
-                    }
-                    else
-                    {
-                        finalModelPath = model.StartsWith("characters/models/", StringComparison.OrdinalIgnoreCase)
-                            ? $"{model}.vmdl"
-                            : $"characters/models/{model}.vmdl";
-                    }
-
-                    player.PlayerPawn.Value.SetModel(finalModelPath);
-                });
-            }
-            catch (Exception)
-            {
-            }
-        }
+			try
+			{
+				Server.NextFrame(() =>
+				{
+					player.PlayerPawn.Value.SetModel(
+						$"characters/models/{model}.vmdl"
+					);
+				});
+			}
+			catch (Exception)
+			{
+			}
+		}
 
 		private static void GivePlayerMusicKit(CCSPlayerController player)
 		{
 			if (player.IsBot) return;
 			if (!GPlayersMusic.TryGetValue(player.Slot, out var musicInfo) ||
 			    !musicInfo.TryGetValue(player.Team, out var musicId) || musicId == 0) return;
-			
+
 			if (player.InventoryServices == null) return;
 
 			player.MusicKitID = musicId;
@@ -559,7 +547,7 @@ namespace WeaponPaints
 		private void UpdatePlayerEconItemId(CEconItemView econItemView)
 		{
 			var itemId = _nextItemId++;
-			
+				
 			econItemView.ItemID = itemId;
 			econItemView.ItemIDLow = (uint)itemId & 0xFFFFFFFF;
 			econItemView.ItemIDHigh = (uint)itemId >> 32;

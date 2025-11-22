@@ -250,7 +250,7 @@ public partial class WeaponPaints
                         };
                         _ = System.Threading.Tasks.Task.Run(async () => await WeaponSync.SyncWeaponPaintsToDatabase(info));
                     }
-                });
+           });
             }
 
             paintsMenu.ParentMenu = weaponSelectionMenu;
@@ -410,45 +410,45 @@ public partial class WeaponPaints
         });
     }
 
-    // ...
-
     private void SetupAgentsMenu()
     {
         var handleAgentSelection = (CCSPlayerController? player, IT3Option option) =>
         {
             if (!Utility.IsPlayerValid(player) || player is null) return;
-
+            
             var selectedName = option.OptionDisplay ?? string.Empty;
             if (string.IsNullOrEmpty(selectedName)) return;
-
+            
             var selectedAgent = AgentsList.FirstOrDefault(g =>
-                g.ContainsKey("agent_name") &&
-                g["agent_name"] != null && g["agent_name"]!.ToString() == selectedName &&
-                g["team"] != null && (int)(g["team"]!) == player.TeamNum);
-
+                g["agent_name"]?.ToString() == selectedName &&
+                g["team"]?.ToObject<int>() == player.TeamNum);
+            
             if (selectedAgent == null) return;
-
-            // Try common keys for the agent model identifier
-            string? model = selectedAgent["model"]?.ToString()
-                            ?? selectedAgent["path"]?.ToString()
-                            ?? selectedAgent["vmdl"]?.ToString()
-                            ?? selectedAgent["agent"]?.ToString();
-            if (string.IsNullOrEmpty(model)) return;
-
-            // Store team-specific model
+            
+            var model = selectedAgent["model"]?.ToString() ?? "null";
+            var isDefaultAgent = string.IsNullOrEmpty(model) || string.Equals(model, "null", StringComparison.OrdinalIgnoreCase);
+            
             var current = GPlayersAgent.GetOrAdd(player.Slot, _ => (null, null));
             if (player.Team == CsTeam.CounterTerrorist)
-                GPlayersAgent[player.Slot] = (model, current.T);
+            {
+                GPlayersAgent[player.Slot] = (isDefaultAgent ? null : model, current.T);
+            }
             else if (player.Team == CsTeam.Terrorist)
-                GPlayersAgent[player.Slot] = (current.CT, model);
+            {
+                GPlayersAgent[player.Slot] = (current.CT, isDefaultAgent ? null : model);
+            }
             else
+            {
                 return;
-
-            // Apply immediately
-            GivePlayerAgent(player);
+            }
+            
+            if (!isDefaultAgent)
+            {
+                GivePlayerAgent(player);
+            }
+            
             player.Print($"Applied agent: {selectedName}");
-
-            // Persist agent selection to DB
+            
             if (WeaponSync != null && player.UserId != null)
             {
                 var info = new PlayerInfo
@@ -463,58 +463,48 @@ public partial class WeaponPaints
                 _ = System.Threading.Tasks.Task.Run(async () => await WeaponSync.SyncAgentToDatabase(info));
             }
         };
-
-        // Command to open the weapon selection menu for players
+        
         _config.Additional.CommandAgent.ForEach(c =>
         {
             AddCommand($"css_{c}", "Agents selection menu", (player, info) =>
             {
                 if (!Utility.IsPlayerValid(player) || !_gBCommandsAllowed) return;
-
                 if (player == null || player.UserId == null) return;
-
+                
                 if (!CommandsCooldown.TryGetValue(player.Slot, out DateTime cooldownEndTime) ||
                     DateTime.UtcNow >= (CommandsCooldown.TryGetValue(player.Slot, out cooldownEndTime) ? cooldownEndTime : DateTime.UtcNow))
                 {
                     var agentsSelectionMenu = Utility.CreateMenu(Localizer["wp_agent_menu_title"]);
                     if (agentsSelectionMenu == null) return;
-
+                    
                     var filteredAgents = AgentsList.Where(agentObject =>
                     {
                         if (agentObject["team"]?.Value<int>() is { } teamNum)
                         {
                             return teamNum == player.TeamNum;
                         }
-                        else
-                        {
-                            return false;
-                        }
+                        return false;
                     });
-
-                    // Add weapon options to the weapon selection menu
-
+                    
                     foreach (var agentObject in filteredAgents)
                     {
-                        var paintName = agentObject["agent_name"]?.ToString() ?? "";
-
+                        var paintName = agentObject["agent_name"]?.ToString() ?? string.Empty;
                         if (paintName.Length > 0)
                             agentsSelectionMenu.AddOption(paintName, handleAgentSelection);
                     }
-
+                    
                     CommandsCooldown[player.Slot] = DateTime.UtcNow.AddSeconds(Config.CmdRefreshCooldownSeconds);
                     WeaponPaints.T3MenuManager?.OpenMainMenu(player, agentsSelectionMenu);
-
                     return;
                 }
+                
                 if (!string.IsNullOrEmpty(Localizer["wp_command_cooldown"]))
                 {
                     player.Print(Localizer["wp_command_cooldown"]);
                 }
             });
-        }); 
+        });
     }
-
-    // ...
 
     private void SetupMusicMenu()
     {
