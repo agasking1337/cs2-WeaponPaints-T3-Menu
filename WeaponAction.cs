@@ -480,7 +480,46 @@ namespace WeaponPaints
 			{
 				Server.NextFrame(() =>
 				{
-					player.PlayerPawn.Value.SetModel(
+					var pawn = player.PlayerPawn.Value;
+					if (pawn == null || !pawn.IsValid)
+						return;
+
+					var skeleton = pawn.CBodyComponent?.SceneNode?.GetSkeletonInstance();
+					var currentModelName = skeleton?.ModelState.ModelName ?? string.Empty;
+					if (!string.IsNullOrEmpty(currentModelName))
+					{
+						const string prefix = "characters/models/";
+						const string suffix = ".vmdl";
+						string originalModelKey;
+						if (currentModelName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+						    currentModelName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) &&
+						    currentModelName.Length > prefix.Length + suffix.Length)
+						{
+							originalModelKey = currentModelName.Substring(prefix.Length, currentModelName.Length - prefix.Length - suffix.Length);
+						}
+						else
+						{
+							originalModelKey = currentModelName;
+						}
+
+						var original = GPlayersOriginalAgent.GetOrAdd(player.Slot, _ => (null, null));
+						if (player.TeamNum == 3)
+						{
+							if (string.IsNullOrEmpty(original.CT))
+							{
+								GPlayersOriginalAgent[player.Slot] = (originalModelKey, original.T);
+							}
+						}
+						else if (player.TeamNum == 2)
+						{
+							if (string.IsNullOrEmpty(original.T))
+							{
+								GPlayersOriginalAgent[player.Slot] = (original.CT, originalModelKey);
+							}
+						}
+					}
+
+					pawn.SetModel(
 						$"characters/models/{model}.vmdl"
 					);
 				});

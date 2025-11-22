@@ -235,6 +235,7 @@ public partial class WeaponPaints
                     }
 
                     p.Print($"Applied skin: {paintName} to {selectedWeapon}");
+                    WeaponPaints.T3MenuManager?.CloseMenu(p);
 
                     // Persist weapon paints to DB
                     if (WeaponSync != null && p.UserId != null)
@@ -442,7 +443,34 @@ public partial class WeaponPaints
                 return;
             }
             
-            if (!isDefaultAgent)
+            if (isDefaultAgent)
+            {
+                try
+                {
+                    Server.NextFrame(() =>
+                    {
+                        var pawn = player.PlayerPawn.Value;
+                        if (pawn == null || !pawn.IsValid)
+                            return;
+                        
+                        if (!GPlayersOriginalAgent.TryGetValue(player.Slot, out var original))
+                            return;
+                        
+                        string? originalModelKey = player.Team == CsTeam.CounterTerrorist
+                            ? original.CT
+                            : original.T;
+                        
+                        if (string.IsNullOrEmpty(originalModelKey))
+                            return;
+                        
+                        pawn.SetModel($"characters/models/{originalModelKey}.vmdl");
+                    });
+                }
+                catch (Exception)
+                {
+                }
+            }
+            else
             {
                 GivePlayerAgent(player);
             }
