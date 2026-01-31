@@ -564,11 +564,42 @@ public partial class WeaponPaints
             var playerMusic = GPlayersMusic.GetOrAdd(player.Slot, new ConcurrentDictionary<CsTeam, ushort>());
             var teamsToCheck = player.TeamNum < 2 
                 ? new[] { CsTeam.Terrorist, CsTeam.CounterTerrorist } 
-                : [player.Team];  // Corrected array initializer
+                : [player.Team];
 
-            // ...
+            ushort musicId = 0;
+            if (selectedPaintName != Localizer["None"])
+            {
+                var musicObj = MusicList.FirstOrDefault(m => (m["name"]?.ToString() ?? "") == selectedPaintName);
+                if (musicObj == null) return;
+                musicId = (ushort)(musicObj["id"]?.ToObject<int>() ?? 0);
+                if (musicId == 0) return;
+            }
+
+            foreach (var team in teamsToCheck)
+            {
+                playerMusic[team] = musicId;
+            }
+
+            // Apply music immediately
+            GivePlayerMusicKit(player);
+            player.Print($"Applied music kit: {selectedPaintName}");
+
+            // Persist music selection to DB
+            if (WeaponSync != null && player.UserId != null)
+            {
+                var info = new PlayerInfo
+                {
+                    UserId = player.UserId,
+                    Slot = player.Slot,
+                    Index = (int)player.Index,
+                    SteamId = player.SteamID.ToString(),
+                    Name = player.PlayerName,
+                    IpAddress = player.IpAddress?.Split(":")[0]
+                };
+                _ = System.Threading.Tasks.Task.Run(async () => await WeaponSync.SyncMusicToDatabase(info, musicId, teamsToCheck));
+            }
         };
-
+        
         musicSelectionMenu.AddOption(Localizer["None"], handleMusicSelection);
         // Add weapon options to the weapon selection menu
         foreach (var paintName in MusicList.Select(musicObject => musicObject["name"]?.ToString() ?? "").Where(paintName => paintName.Length > 0))
