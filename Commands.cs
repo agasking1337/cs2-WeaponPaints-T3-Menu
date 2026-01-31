@@ -648,9 +648,40 @@ public partial class WeaponPaints
                 ? new[] { CsTeam.Terrorist, CsTeam.CounterTerrorist } 
                 : [player.Team];
 
-            // ...
-        };
+            ushort pinId = 0;
+            if (selectedPaintName != Localizer["None"])
+            {
+                var pinObj = PinsList.FirstOrDefault(p => (p["name"]?.ToString() ?? "") == selectedPaintName);
+                if (pinObj == null) return;
+                pinId = (ushort)(pinObj["id"]?.ToObject<int>() ?? 0);
+                if (pinId == 0) return;
+            }
 
+            foreach (var team in teamsToCheck)
+            {
+                playerPins[team] = pinId;
+            }
+
+            // Apply pin immediately
+            GivePlayerPin(player);
+            player.Print($"Applied pin: {selectedPaintName}");
+
+            // Persist pin selection to DB
+            if (WeaponSync != null && player.UserId != null)
+            {
+                var info = new PlayerInfo
+                {
+                    UserId = player.UserId,
+                    Slot = player.Slot,
+                    Index = (int)player.Index,
+                    SteamId = player.SteamID.ToString(),
+                    Name = player.PlayerName,
+                    IpAddress = player.IpAddress?.Split(":")[0]
+                };
+                _ = System.Threading.Tasks.Task.Run(async () => await WeaponSync.SyncPinToDatabase(info, pinId, teamsToCheck));
+            }
+        };
+        
         pinsSelectionMenu.AddOption(Localizer["None"], handlePinsSelection);
         // Add weapon options to the weapon selection menu
         foreach (var paintName in PinsList.Select(musicObject => musicObject["name"]?.ToString() ?? "").Where(paintName => paintName.Length > 0))
