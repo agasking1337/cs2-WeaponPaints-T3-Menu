@@ -150,6 +150,8 @@ public partial class WeaponPaints : BasePlugin, IPluginConfig<WeaponPaintsConfig
 				SetupPinsMenu();
 		}
 		
+		SetupStatTrakCommand();
+		
 		RegisterCommands();
 	}
 
