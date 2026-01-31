@@ -44,6 +44,9 @@ namespace WeaponPaints
 		[JsonPropertyName("CommandAgent")]
 		public List<string> CommandAgent { get; set; } = ["agents"];
 		
+		[JsonPropertyName("CommandNametag")]
+		public List<string> CommandNametag { get; set; } = ["nametag"];
+
 		[JsonPropertyName("CommandStattrak")]
 		public List<string> CommandStattrak { get; set; } = ["stattrak", "st"];
 

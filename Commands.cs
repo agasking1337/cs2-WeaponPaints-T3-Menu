@@ -830,4 +830,95 @@ public partial class WeaponPaints
             });
         });
     }
+
+    private void SetupNametagCommand()
+    {
+        _config.Additional.CommandNametag.ForEach(c =>
+        {
+            AddCommand($"css_{c}", "Set nametag on current weapon", (player, info) =>
+            {
+                if (!Utility.IsPlayerValid(player) || !_gBCommandsAllowed) return;
+                if (player == null || player.UserId == null) return;
+
+                if (!CommandsCooldown.TryGetValue(player.Slot, out var cooldownEndTime) ||
+                    DateTime.UtcNow >= (CommandsCooldown.TryGetValue(player.Slot, out cooldownEndTime) ? cooldownEndTime : DateTime.UtcNow))
+                {
+                    CommandsCooldown[player.Slot] = DateTime.UtcNow.AddSeconds(Config.CmdRefreshCooldownSeconds);
+
+                    var activeWeapon = player.PlayerPawn.Value?.WeaponServices?.ActiveWeapon.Value;
+                    if (activeWeapon == null || !activeWeapon.IsValid)
+                    {
+                        player.Print("No active weapon found.");
+                        return;
+                    }
+
+                    var weaponDefIndex = activeWeapon.AttributeManager.Item.ItemDefinitionIndex;
+                    if (weaponDefIndex == 0)
+                    {
+                        player.Print("Invalid weapon.");
+                        return;
+                    }
+
+                    var teamsToCheck = player.TeamNum < 2
+                        ? new[] { CsTeam.Terrorist, CsTeam.CounterTerrorist }
+                        : new[] { player.Team };
+
+                    var playerWeapons = GPlayerWeaponsInfo.GetOrAdd(player.Slot,
+                        _ => new ConcurrentDictionary<CsTeam, ConcurrentDictionary<int, WeaponInfo>>());
+
+                    string nametag = info.GetArg(1) ?? "";
+
+                    foreach (var team in teamsToCheck)
+                    {
+                        var teamWeapons = playerWeapons.GetOrAdd(team, _ => new ConcurrentDictionary<int, WeaponInfo>());
+                        if (teamWeapons.TryGetValue(weaponDefIndex, out var weaponInfo))
+                        {
+                            weaponInfo.Nametag = nametag;
+                        }
+                        else
+                        {
+                            teamWeapons[weaponDefIndex] = new WeaponInfo
+                            {
+                                Paint = 0,
+                                Seed = 0,
+                                Wear = 0.01f,
+                                Nametag = nametag,
+                                StatTrak = false,
+                                StatTrakCount = 0,
+                                KeyChain = null,
+                                Stickers = new List<StickerInfo>()
+                            };
+                        }
+                    }
+
+                    // Apply to active weapon
+                    GivePlayerWeaponSkin(player, activeWeapon);
+
+                    player.Print($"Nametag set to: {nametag}");
+
+                    // Persist to DB
+                    if (WeaponSync != null)
+                    {
+                        var playerInfo = new PlayerInfo
+                        {
+                            UserId = player.UserId,
+                            Slot = player.Slot,
+                            Index = (int)player.Index,
+                            SteamId = player.SteamID.ToString(),
+                            Name = player.PlayerName,
+                            IpAddress = player.IpAddress?.Split(":")[0]
+                        };
+                        WeaponSync.SyncWeaponPaintsToDatabase(playerInfo).Wait();
+                    }
+
+                    return;
+                }
+                
+                if (!string.IsNullOrEmpty(Localizer["wp_command_cooldown"]))
+                {
+                    player.Print(Localizer["wp_command_cooldown"]);
+                }
+            });
+        });
+    }
 }

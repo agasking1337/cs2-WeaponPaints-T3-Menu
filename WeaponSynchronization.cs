@@ -477,6 +477,7 @@ internal class WeaponSynchronization
 					var paintId = weaponInfo.Paint;
 					var wear = weaponInfo.Wear;
 					var seed = weaponInfo.Seed;
+					var nametag = weaponInfo.Nametag;
 
 					// Prepare the queries to check and update/insert weapon skin data
 					const string queryCheckExistence = "SELECT COUNT(*) FROM `wp_player_skins` WHERE `steamid` = @steamid AND `weapon_defindex` = @weaponDefIndex AND `weapon_team` = @weaponTeam";
@@ -492,16 +493,16 @@ internal class WeaponSynchronization
 					if (existingRecordCount > 0)
 					{
 						// Update existing record
-						query = "UPDATE `wp_player_skins` SET `weapon_paint_id` = @paintId, `weapon_wear` = @wear, `weapon_seed` = @seed " +
+						query = "UPDATE `wp_player_skins` SET `weapon_paint_id` = @paintId, `weapon_wear` = @wear, `weapon_seed` = @seed, `weapon_nametag` = @nametag " +
 						        "WHERE `steamid` = @steamid AND `weapon_defindex` = @weaponDefIndex AND `weapon_team` = @weaponTeam";
-						parameters = new { steamid = player.SteamId, weaponDefIndex, weaponTeam = (int)teamId, paintId, wear, seed };
+						parameters = new { steamid = player.SteamId, weaponDefIndex, weaponTeam = (int)teamId, paintId, wear, seed, nametag };
 					}
 					else
 					{
 						// Insert new record
-						query = "INSERT INTO `wp_player_skins` (`steamid`, `weapon_defindex`, `weapon_team`, `weapon_paint_id`, `weapon_wear`, `weapon_seed`) " +
-						        "VALUES (@steamid, @weaponDefIndex, @weaponTeam, @paintId, @wear, @seed)";
-						parameters = new { steamid = player.SteamId, weaponDefIndex, weaponTeam = (int)teamId, paintId, wear, seed };
+						query = "INSERT INTO `wp_player_skins` (`steamid`, `weapon_defindex`, `weapon_team`, `weapon_paint_id`, `weapon_wear`, `weapon_seed`, `weapon_nametag`) " +
+						        "VALUES (@steamid, @weaponDefIndex, @weaponTeam, @paintId, @wear, @seed, @nametag)";
+						parameters = new { steamid = player.SteamId, weaponDefIndex, weaponTeam = (int)teamId, paintId, wear, seed, nametag };
 					}
 
 					await connection.ExecuteAsync(query, parameters);

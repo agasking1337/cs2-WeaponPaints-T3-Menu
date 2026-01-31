@@ -151,6 +151,7 @@ public partial class WeaponPaints : BasePlugin, IPluginConfig<WeaponPaintsConfig
 		}
 		
 		SetupStatTrakCommand();
+		SetupNametagCommand();
 		
 		RegisterCommands();
 	}
