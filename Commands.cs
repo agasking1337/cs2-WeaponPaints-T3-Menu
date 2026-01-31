@@ -354,8 +354,24 @@ public partial class WeaponPaints
                     Name = player.PlayerName,
                     IpAddress = player.IpAddress?.Split(":")[0]
                 };
-                var teams = teamsToCheck;
-                _ = System.Threading.Tasks.Task.Run(async () => await WeaponSync.SyncGloveToDatabase(info, (ushort)gloveDefIndex, teams));
+                Utility.Log($"Triggering glove sync for {player.PlayerName}, teams: {string.Join(",", teamsToCheck)}, gloveDefIndex: {gloveDefIndex}");
+                _ = System.Threading.Tasks.Task.Run(async () => 
+                {
+                    try 
+                    {
+                        await WeaponSync.SyncGloveToDatabase(info, (ushort)gloveDefIndex, teamsToCheck);
+                        await WeaponSync.SyncWeaponPaintsToDatabase(info);
+                    }
+                    catch (Exception ex)
+                    {
+                        Utility.Log($"Exception in glove sync Task: {ex.Message}");
+                        Utility.Log($"Stack trace: {ex.StackTrace}");
+                    }
+                });
+            }
+            else
+            {
+                Utility.Log($"Glove sync skipped: WeaponSync is null? {WeaponSync == null}, UserId is null? {player.UserId == null}");
             }
         };
 

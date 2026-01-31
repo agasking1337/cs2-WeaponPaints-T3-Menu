@@ -96,12 +96,13 @@ internal class WeaponSynchronization
 				return;
 
 			const string query = "SELECT `weapon_defindex`, `weapon_team` FROM `wp_player_gloves` WHERE `steamid` = @steamid ORDER BY `weapon_team` ASC";
-			var rows = connection.Query<dynamic>(query, new { steamid = player.SteamId }); // Retrieve all records for the player
+			var rows = connection.Query<dynamic>(query, new { steamid = player.SteamId });
 
 			foreach (var row in rows)
 			{
 				// Check if weapon_defindex is null
 				if (row.weapon_defindex == null) continue;
+				
 				// Determine the weapon team based on the query result
 				var playerGloves = WeaponPaints.GPlayersGlove.GetOrAdd(player.Slot, _ => new ConcurrentDictionary<CsTeam, ushort>());
 				CsTeam weaponTeam = (int)row.weapon_team switch
@@ -111,17 +112,13 @@ internal class WeaponSynchronization
 					_ => CsTeam.None,
 				};
 
-				// Get or create entries for the player’s slot
-
 				if (weaponTeam == CsTeam.None)
 				{
-					// Assign glove ID to both teams if weaponTeam is None
 					playerGloves[CsTeam.Terrorist] = (ushort)row.weapon_defindex;
 					playerGloves[CsTeam.CounterTerrorist] = (ushort)row.weapon_defindex;
 				}
 				else
 				{
-					// Assign glove ID to the specific team
 					playerGloves[weaponTeam] = (ushort)row.weapon_defindex;
 				}
 			}
@@ -426,11 +423,10 @@ internal class WeaponSynchronization
 			// Loop through each team and insert/update accordingly
 			foreach (var team in teams)
 			{
-				// Execute the SQL command for each team
 				await connection.ExecuteAsync(query, new { 
 					steamid = player.SteamId, 
-					team = (int)team, // Cast the CsTeam enum to int for insertion
-					gloveDefIndex 
+					team = (int)team,
+					gloveDefIndex = (int)gloveDefIndex
 				});
 			}
 		}

@@ -4,6 +4,7 @@ using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Entities;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
+using CounterStrikeSharp.API.Modules.Timers;
 using Microsoft.Extensions.Logging;
 
 namespace WeaponPaints
@@ -152,6 +153,17 @@ namespace WeaponPaints
 			Server.NextFrame(() =>
 			{
 				GivePlayerGloves(player);
+				
+				// Retry after delay if glove data hasn't loaded yet from DB
+				AddTimer(2.0f, () =>
+				{
+					if (player.IsValid && 
+					    GPlayersGlove.TryGetValue(player.Slot, out var gloveData) &&
+					    gloveData.ContainsKey(player.Team))
+					{
+						GivePlayerGloves(player);
+					}
+				}, TimerFlags.STOP_ON_MAPCHANGE);
 			});
 			GivePlayerPin(player);
 
